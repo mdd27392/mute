@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mute</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Mute is a tiny ambient mini app that lets you quickly log how loud your environment feels. Tap to mark quiet, medium, or loud and see your day fill with moments of calm or noise.">
+
+  <meta property="og:title" content="Mute">
+  <meta property="og:description" content="Mute is a tiny ambient mini app that lets you quickly log how loud your environment feels. Tap to mark quiet, medium, or loud and see your day fill with moments of calm or noise.">
+  <meta property="og:image" content="https://mute-mini.vercel.app/assets/hero.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mute-mini.vercel.app/">
+
+  <meta name="fc:miniapp" content='{"version":"1","name":"Mute","iconUrl":"https://mute-mini.vercel.app/assets/icon.png","imageUrl":"https://mute-mini.vercel.app/assets/embed-3x2.png","button":{"title":"Open Mute","action":{"type":"launch_frame","url":"https://mute-mini.vercel.app/"}},"splashImageUrl":"https://mute-mini.vercel.app/assets/splash.png","splashBackgroundColor":"#020617"}'>
+  <meta property="fc:frame" content='{"version":"vNext","imageUrl":"https://mute-mini.vercel.app/assets/embed-3x2.png","button":{"title":"Open Mute","action":{"type":"launch_frame","url":"https://mute-mini.vercel.app/"}},"splashImageUrl":"https://mute-mini.vercel.app/assets/splash.png","splashBackgroundColor":"#020617"}'>
+
+  <meta name="theme-color" content="#020617">
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #020617;
+      --fg: #e5e7eb;
+      --muted: #64748b;
+      --accent-quiet: #22c55e;
+      --accent-mid: #eab308;
+      --accent-loud: #f97316;
+      --card: #020617;
+      --border: rgba(148, 163, 184, 0.35);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: radial-gradient(circle at top, #020617, #020617);
+      color: var(--fg);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      margin-inline: auto;
+      padding: 20px 16px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      padding: 16px 14px 18px;
+      background: radial-gradient(circle at top, rgba(30, 64, 175, 0.28), rgba(15, 23, 42, 0.96));
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .meter-shell {
+      border-radius: 18px;
+      padding: 18px 16px 14px;
+      background: radial-gradient(circle at top, rgba(15, 118, 110, 0.65), rgba(15, 23, 42, 0.96));
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .meter-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(226, 232, 240, 0.9);
+      margin-bottom: 12px;
+    }
+
+    .meter {
+      position: relative;
+      height: 140px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .meter-base {
+      position: absolute;
+      bottom: 26px;
+      width: 72%;
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent-quiet), var(--accent-mid), var(--accent-loud));
+      opacity: 0.3;
+    }
+
+    .meter-fill {
+      position: absolute;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72%;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .meter-fill-inner {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-quiet), var(--accent-mid), var(--accent-loud));
+      transform-origin: left center;
+      transform: scaleX(0.1);
+      transition: transform 0.25s ease-out;
+    }
+
+    .meter-indicator {
+      position: absolute;
+      bottom: 36px;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid #020617;
+      background: #f9fafb;
+      box-shadow: 0 0 10px rgba(15, 23, 42, 0.85);
+      transform: translateX(-50%);
+      transition: transform 0.25s ease-out;
+    }
+
+    .meter-floor {
+      position: absolute;
+      bottom: 18px;
+      width: 60%;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.4);
+    }
+
+    .sound-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(226, 232, 240, 0.9);
+      margin-top: 8px;
+    }
+
+    .sound-labels span:nth-child(1) { color: var(--accent-quiet); }
+    .sound-labels span:nth-child(2) { color: var(--accent-mid); }
+    .sound-labels span:nth-child(3) { color: var(--accent-loud); }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.9);
+      font-size: 0.78rem;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease-out, border-color 0.15s ease-out, transform 0.06s ease-out;
+    }
+
+    .pill[data-level="quiet"] { border-color: rgba(34, 197, 94, 0.8); }
+    .pill[data-level="mid"] { border-color: rgba(234, 179, 8, 0.8); }
+    .pill[data-level="loud"] { border-color: rgba(249, 115, 22, 0.8); }
+
+    .pill.active[data-level="quiet"] { background: rgba(22, 163, 74, 0.25); }
+    .pill.active[data-level="mid"] { background: rgba(202, 138, 4, 0.25); }
+    .pill.active[data-level="loud"] { background: rgba(234, 88, 12, 0.25); }
+
+    .pill:active {
+      transform: scale(0.97);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: rgba(148, 163, 184, 0.95);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+
+    .log-shell {
+      border-radius: 18px;
+      padding: 12px 12px 10px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px dashed rgba(148, 163, 184, 0.6);
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .log-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(148, 163, 184, 0.95);
+    }
+
+    .log-day {
+      font-size: 0.75rem;
+      color: rgba(226, 232, 240, 0.95);
+    }
+
+    .log-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 110px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+    }
+
+    .log-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .log-list::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.6);
+      border-radius: 999px;
+    }
+
+    .log-empty {
+      font-size: 0.78rem;
+      color: rgba(148, 163, 184, 0.9);
+      padding: 2px 0 4px;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 0.8rem;
+      color: rgba(226, 232, 240, 0.96);
+      border-bottom: 1px dashed rgba(30, 64, 175, 0.35);
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .log-badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .log-badge.quiet {
+      border-color: rgba(34, 197, 94, 0.85);
+      color: rgba(74, 222, 128, 0.95);
+    }
+
+    .log-badge.mid {
+      border-color: rgba(234, 179, 8, 0.85);
+      color: rgba(250, 204, 21, 0.95);
+    }
+
+    .log-badge.loud {
+      border-color: rgba(249, 115, 22, 0.9);
+      color: rgba(251, 146, 60, 0.96);
+    }
+
+    .log-time {
+      color: rgba(148, 163, 184, 0.9);
+      font-size: 0.76rem;
+    }
+
+    .log-footer {
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: rgba(148, 163, 184, 0.95);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .summary-pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      font-size: 0.72rem;
+    }
+
+    footer {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      color: rgba(100, 116, 139, 0.95);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(148, 163, 184, 0.7); }
+
+    @media (min-height: 780px) {
+      .meter { height: 160px; }
+      .log-list { max-height: 130px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title-row">
+        <div>
+          <div class="app-title">Mute</div>
+          <div class="subtitle">Log your quiet moments.</div>
+        </div>
+        <div class="badge">Ambient Log</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="meter-shell">
+          <div class="meter-title">How loud is it now</div>
+          <div class="meter" id="meter">
+            <div class="meter-base"></div>
+            <div class="meter-fill">
+              <div class="meter-fill-inner" id="meter-fill"></div>
+            </div>
+            <div class="meter-floor"></div>
+            <div class="meter-indicator" id="meter-indicator"></div>
+          </div>
+          <div class="sound-labels">
+            <span>Quiet</span>
+            <span>Medium</span>
+            <span>Loud</span>
+          </div>
+          <div class="pill-row">
+            <button class="pill" data-level="quiet" id="btn-quiet">Mark quiet</button>
+            <button class="pill" data-level="mid" id="btn-mid">Mark medium</button>
+            <button class="pill" data-level="loud" id="btn-loud">Mark loud</button>
+          </div>
+          <p class="hint">
+            Tap when the room changes. Mute records a small timestamped mark on this device only.
+          </p>
+        </div>
+
+        <div class="log-shell">
+          <div class="log-header">
+            <div class="log-title">Today&apos;s pattern</div>
+            <div class="log-day" id="log-day"></div>
+          </div>
+          <ul class="log-list" id="log-list">
+            <li class="log-empty" id="log-empty">No moments yet. Start by logging the current sound.</li>
+          </ul>
+          <div class="log-footer">
+            <span class="summary-pill" id="summary-pill">0 quiet · 0 medium · 0 loud</span>
+            <span id="environment-indicator">Detecting environment…</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Saved locally only.</span>
+      <span class="dot"></span>
+    </footer>
+  </div>
+
+  <script type="module" src="./script.js"></script>
+</body>
+</html>
